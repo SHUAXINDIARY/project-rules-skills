@@ -1,0 +1,13 @@
+{
+  "name": "project-rules-skills",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dry-run:react": "node .agents/skills/init-project-rules/scripts/init_project_rules.mjs --stack react --dry-run",
+    "dry-run:vue": "node .agents/skills/init-project-rules/scripts/init_project_rules.mjs --stack vue --dry-run",
+    "init:react": "node .agents/skills/init-project-rules/scripts/init_project_rules.mjs --stack react",
+    "init:vue": "node .agents/skills/init-project-rules/scripts/init_project_rules.mjs --stack vue",
+    "validate": "pnpm run dry-run:react && pnpm run dry-run:vue"
+  }
+}

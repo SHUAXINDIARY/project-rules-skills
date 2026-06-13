@@ -1,0 +1,4 @@
+interface:
+  display_name: "Init Project Rules"
+  short_description: "Initialize generic Cursor project rules"
+  default_prompt: "Use $init-project-rules to initialize Cursor project rules for a React or Vue app."
