@@ -2,6 +2,8 @@
 
 [中文](README.md)
 
+[![skills.sh](https://skills.sh/b/SHUAXINDIARY/project-rules-skills)](https://www.skills.sh/s/SHUAXINDIARY/project-rules-skills)
+
 Reusable Cursor/Codex skills for initializing generic Cursor project rules in JavaScript/TypeScript frontend projects.
 
 ## Repository Overview
@@ -30,6 +32,16 @@ This repository stores agent skills and helper scripts that generate consistent 
 - The project has no runtime dependencies.
 
 ## Usage
+
+### Install from skills.sh
+
+This repository is published on [skills.sh](https://www.skills.sh/s/SHUAXINDIARY/project-rules-skills) and can be installed directly with the `skills` CLI:
+
+```bash
+npx skills add SHUAXINDIARY/project-rules-skills
+```
+
+After installation, use the `init-project-rules` skill in any AI agent that supports skills.
 
 ### Use as an Agent Skill
 

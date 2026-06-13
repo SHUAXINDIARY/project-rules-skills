@@ -2,6 +2,8 @@
 
 [English](README.en.md)
 
+[![skills.sh](https://skills.sh/b/SHUAXINDIARY/project-rules-skills)](https://www.skills.sh/s/SHUAXINDIARY/project-rules-skills)
+
 用于为 JavaScript/TypeScript 前端项目初始化通用 Cursor 项目规则的可复用 Cursor/Codex 技能集。
 
 ## 仓库说明
@@ -30,6 +32,16 @@
 - 本项目没有运行时依赖。
 
 ## 如何使用
+
+### 通过 skills.sh 直接安装
+
+本仓库技能已发布到 [skills.sh](https://www.skills.sh/s/SHUAXINDIARY/project-rules-skills)，支持通过 `skills` CLI 直接安装：
+
+```bash
+npx skills add SHUAXINDIARY/project-rules-skills
+```
+
+安装后，可在支持 skills 的 AI agent 中调用 `init-project-rules` 技能。
 
 ### 作为 Agent 技能使用
 
