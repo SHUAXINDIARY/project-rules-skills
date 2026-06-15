@@ -16,6 +16,8 @@
 - 生成带有 `alwaysApply: true` 的可复用 `.cursor/rules/project-base-rules.mdc`。
 - 在可能时根据锁文件推断目标项目的包管理器。
 - 根据 `package.json` 推断常见构建工具，包括 Rsbuild、Vite、Next.js、Nuxt 和 Webpack。
+- 默认写入目标项目的有限目录结构快照，帮助 agent 理解当前工程边界。
+- 根据 `package.json` 识别并列出常见通用 SDK/库，例如框架、路由、状态管理、请求、云服务、监控、UI、校验、日期和测试工具。
 - 支持 dry-run 输出，便于写入前审阅内容。
 - 默认拒绝覆盖目标项目已有规则文件，除非显式传入 `--force`。
 
@@ -52,7 +54,7 @@ Use $init-project-rules to initialize Cursor project rules for a React app.
 Use $init-project-rules to initialize Cursor project rules for a Vue app.
 ```
 
-该技能会要求 agent 先检查目标项目，再选择正确技术栈并生成规则，同时避免覆盖用户已有的无关改动。
+该技能会要求 agent 先检查目标项目，再选择正确技术栈并生成规则。生成内容会包含当前工程目录结构和从 `package.json` 推断出的通用 SDK/库，同时避免覆盖用户已有的无关改动。
 
 ### 使用仓库脚本
 
@@ -103,6 +105,13 @@ node .agents/skills/init-project-rules/scripts/init_project_rules.mjs --project-
 ```
 
 如果该文件已经存在，生成器会停止并提示先人工审阅或合并。只有在明确需要替换现有文件时才使用 `--force`。
+
+生成的规则会包含：
+
+- `alwaysApply: true` 的项目基础规则。
+- 目标项目的有限目录结构快照，默认跳过 `node_modules`、`.git`、构建产物、缓存和 `.env*` 等不适合写入规则的内容。
+- 从 `package.json` 推断出的常见通用 SDK/库清单。
+- 包管理器、构建工具、TypeScript、React/Vue、异步、数据容错、前端验收、安全、Git 与交付相关约束。
 
 ## 仓库结构
 

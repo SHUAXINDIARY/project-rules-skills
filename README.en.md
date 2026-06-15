@@ -16,6 +16,8 @@ This repository stores agent skills and helper scripts that generate consistent 
 - Generates a reusable `.cursor/rules/project-base-rules.mdc` with `alwaysApply: true`.
 - Infers the package manager from lockfiles when possible.
 - Infers common build tools from `package.json`, including Rsbuild, Vite, Next.js, Nuxt, and Webpack.
+- Writes a bounded snapshot of the target project's directory structure by default, helping agents understand the current project boundary.
+- Detects and lists common SDKs/libraries from `package.json`, such as framework, routing, state management, data fetching, cloud service, monitoring, UI, validation, date, and test tooling.
 - Supports dry-run output for review before writing files.
 - Refuses to overwrite existing target rules unless `--force` is explicitly provided.
 
@@ -52,7 +54,7 @@ Use $init-project-rules to initialize Cursor project rules for a React app.
 Use $init-project-rules to initialize Cursor project rules for a Vue app.
 ```
 
-The skill instructs the agent to inspect the target project first, choose the correct stack, generate the rules, and avoid overwriting unrelated user changes.
+The skill instructs the agent to inspect the target project first, choose the correct stack, and generate the rules. The generated content includes the current project directory structure and common SDKs/libraries inferred from `package.json`, while avoiding overwrites of unrelated user changes.
 
 ### Use Repository Scripts
 
@@ -103,6 +105,13 @@ By default, the generator writes:
 ```
 
 If that file already exists, the generator stops and asks you to review or merge manually. Use `--force` only when replacing the existing file is intentional.
+
+The generated rules include:
+
+- Project base rules with `alwaysApply: true`.
+- A bounded snapshot of the target project directory structure, skipping content that should not be written into rules, such as `node_modules`, `.git`, build outputs, caches, and `.env*`.
+- A list of common SDKs/libraries inferred from `package.json`.
+- Guardrails for the package manager, build tool, TypeScript, React/Vue, async code, data tolerance, frontend acceptance, security, Git, and delivery.
 
 ## Repository Layout
 
