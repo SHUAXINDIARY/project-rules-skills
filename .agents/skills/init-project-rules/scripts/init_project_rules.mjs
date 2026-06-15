@@ -1,9 +1,45 @@
 #!/usr/bin/env node
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 const STACKS = new Set(["react", "vue"]);
 const PACKAGE_MANAGERS = new Set(["pnpm", "npm", "yarn", "bun"]);
+const TREE_MAX_DEPTH = 2;
+const TREE_MAX_ENTRIES_PER_DIR = 40;
+const TREE_IGNORED_NAMES = new Set([
+  ".DS_Store",
+  ".cache",
+  ".git",
+  ".next",
+  ".nuxt",
+  ".output",
+  ".parcel-cache",
+  ".turbo",
+  ".vercel",
+  ".vite",
+  "build",
+  "coverage",
+  "dist",
+  "node_modules",
+  "out",
+  "storybook-static",
+]);
+
+const COMMON_SDK_GROUPS = [
+  ["框架与运行时", ["react", "react-dom", "vue", "next", "nuxt"]],
+  ["构建与编译", ["@rsbuild/core", "vite", "webpack", "typescript", "esbuild", "rollup"]],
+  ["路由", ["react-router", "react-router-dom", "@tanstack/react-router", "vue-router"]],
+  ["状态管理", ["@reduxjs/toolkit", "redux", "zustand", "jotai", "recoil", "pinia", "vuex"]],
+  ["数据请求与缓存", ["@tanstack/react-query", "swr", "axios", "graphql", "@apollo/client", "urql"]],
+  ["云服务与后端 SDK", ["firebase", "@supabase/supabase-js", "aws-amplify", "@aws-sdk/*"]],
+  ["监控与分析", ["@sentry/react", "@sentry/vue", "@sentry/browser", "@sentry/nextjs", "posthog-js"]],
+  ["支付", ["@stripe/stripe-js", "stripe"]],
+  ["国际化", ["i18next", "react-i18next", "vue-i18n"]],
+  ["UI 与样式", ["antd", "@mui/material", "@chakra-ui/react", "element-plus", "naive-ui", "vuetify", "tailwindcss"]],
+  ["数据校验", ["zod", "yup", "valibot"]],
+  ["日期时间", ["date-fns", "dayjs", "luxon"]],
+  ["测试与质量", ["vitest", "jest", "@testing-library/react", "@testing-library/vue", "@playwright/test", "cypress", "eslint", "prettier"]],
+];
 
 const HELP_TEXT = `Usage:
   node init_project_rules.mjs --project-root <path> --stack react|vue [--package-manager pnpm|npm|yarn|bun] [--force] [--dry-run]
@@ -93,47 +129,162 @@ function inferPackageManager(projectRoot) {
   return match?.[1] ?? "项目已有包管理器";
 }
 
-function inferBuildTool(projectRoot) {
+function readPackageJson(projectRoot) {
   const packageJsonPath = path.join(projectRoot, "package.json");
 
   if (!existsSync(packageJsonPath)) {
-    return "以现有构建配置与项目文档为准";
+    return undefined;
   }
 
   try {
-    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
-    const dependencies = {
-      ...packageJson.dependencies,
-      ...packageJson.devDependencies,
-    };
-
-    if (dependencies["@rsbuild/core"]) {
-      return "Rsbuild";
-    }
-    if (
-      dependencies.vite ||
-      dependencies["@vitejs/plugin-react"] ||
-      dependencies["@vitejs/plugin-vue"]
-    ) {
-      return "Vite";
-    }
-    if (dependencies.next) {
-      return "Next.js";
-    }
-    if (dependencies.nuxt) {
-      return "Nuxt";
-    }
-    if (dependencies.webpack) {
-      return "Webpack";
-    }
+    return JSON.parse(readFileSync(packageJsonPath, "utf8"));
   } catch {
+    return undefined;
+  }
+}
+
+function getPackageDependencies(packageJson) {
+  return {
+    ...packageJson?.dependencies,
+    ...packageJson?.devDependencies,
+    ...packageJson?.peerDependencies,
+    ...packageJson?.optionalDependencies,
+  };
+}
+
+function inferBuildTool(packageJson) {
+  if (!packageJson) {
     return "以现有构建配置与项目文档为准";
+  }
+
+  const dependencies = getPackageDependencies(packageJson);
+
+  if (dependencies["@rsbuild/core"]) {
+    return "Rsbuild";
+  }
+  if (
+    dependencies.vite ||
+    dependencies["@vitejs/plugin-react"] ||
+    dependencies["@vitejs/plugin-vue"]
+  ) {
+    return "Vite";
+  }
+  if (dependencies.next) {
+    return "Next.js";
+  }
+  if (dependencies.nuxt) {
+    return "Nuxt";
+  }
+  if (dependencies.webpack) {
+    return "Webpack";
   }
 
   return "以现有构建配置与项目文档为准";
 }
 
-function renderRules({ stack, packageManager, buildTool }) {
+function renderProjectTree(projectRoot) {
+  const rootName = path.basename(projectRoot) || projectRoot;
+  const lines = [`${rootName}/`];
+
+  appendTreeEntries(projectRoot, "", 0, lines);
+
+  return lines.join("\n");
+}
+
+function appendTreeEntries(directoryPath, prefix, depth, lines) {
+  if (depth >= TREE_MAX_DEPTH) {
+    return;
+  }
+
+  let entries;
+
+  try {
+    entries = readdirSync(directoryPath, { withFileTypes: true });
+  } catch {
+    return;
+  }
+
+  const visibleEntries = entries
+    .filter((entry) => shouldIncludeTreeEntry(entry))
+    .sort(compareTreeEntries);
+  const shownEntries = visibleEntries.slice(0, TREE_MAX_ENTRIES_PER_DIR);
+
+  shownEntries.forEach((entry, index) => {
+    const isLast = index === shownEntries.length - 1 && shownEntries.length === visibleEntries.length;
+    const entryName = `${entry.name}${entry.isDirectory() ? "/" : ""}`;
+    lines.push(`${prefix}${isLast ? "`-- " : "|-- "}${entryName}`);
+
+    if (entry.isDirectory()) {
+      appendTreeEntries(
+        path.join(directoryPath, entry.name),
+        `${prefix}${isLast ? "    " : "|   "}`,
+        depth + 1,
+        lines,
+      );
+    }
+  });
+
+  if (visibleEntries.length > shownEntries.length) {
+    lines.push(`${prefix}\`-- ... (${visibleEntries.length - shownEntries.length} more)`);
+  }
+}
+
+function shouldIncludeTreeEntry(entry) {
+  if (TREE_IGNORED_NAMES.has(entry.name) || entry.name.startsWith(".env")) {
+    return false;
+  }
+
+  return entry.isDirectory() || entry.isFile();
+}
+
+function compareTreeEntries(left, right) {
+  if (left.isDirectory() !== right.isDirectory()) {
+    return left.isDirectory() ? -1 : 1;
+  }
+
+  return left.name.localeCompare(right.name);
+}
+
+function renderCommonSdkList(packageJson) {
+  if (!packageJson) {
+    return "- 未找到 `package.json`，通用 SDK/库以项目实际配置和文档为准。";
+  }
+
+  const dependencies = getPackageDependencies(packageJson);
+  const detectedGroups = COMMON_SDK_GROUPS.map(([groupName, packagePatterns]) => {
+    const matches = packagePatterns.flatMap((packagePattern) =>
+      matchDependencyPattern(packagePattern, dependencies),
+    );
+
+    return [groupName, matches];
+  }).filter(([, matches]) => matches.length > 0);
+
+  if (detectedGroups.length === 0) {
+    return "- `package.json` 暂未声明常见通用 SDK/库；新增能力前仍应先检查已有源码、工具函数和浏览器 API。";
+  }
+
+  return detectedGroups
+    .map(([groupName, matches]) => `- ${groupName}：${matches.map(formatPackageVersion).join("、")}`)
+    .join("\n");
+}
+
+function matchDependencyPattern(packagePattern, dependencies) {
+  if (packagePattern.endsWith("/*")) {
+    const prefix = packagePattern.slice(0, -1);
+    return Object.keys(dependencies)
+      .filter((packageName) => packageName.startsWith(prefix))
+      .sort()
+      .map((packageName) => [packageName, dependencies[packageName]]);
+  }
+
+  return dependencies[packagePattern] ? [[packagePattern, dependencies[packagePattern]]] : [];
+}
+
+function formatPackageVersion([packageName, packageVersion]) {
+  return `\`${packageName}\`${packageVersion ? ` (${packageVersion})` : ""}`;
+}
+
+function renderRules({ stack, packageManager, buildTool, projectTree, commonSdks }) {
   const stackTitle = stack === "react" ? "React" : "Vue";
   const stackSection = stack === "react" ? renderReactRules() : renderVueRules();
 
@@ -150,6 +301,21 @@ alwaysApply: true
 - 修改前应先阅读与任务相关的现有文件；若存在 \`AGENTS.md\`、\`README.md\`、\`PRODUCT.md\`、\`DESIGN.md\`、现有 Cursor rules 或相关 skill，应一并参考。
 - 优先遵循仓库已有目录结构、命名方式、组件模式、工具链配置和文档约定。
 - 不要把其他项目的具体目录、业务数据、路由、文案或本地约束复制到当前项目。
+
+## 项目结构与已用 SDK
+
+目录结构快照（生成规则时自动读取，后续以仓库实际结构为准）：
+
+\`\`\`text
+${projectTree}
+\`\`\`
+
+从 \`package.json\` 识别到的通用 SDK/库：
+
+${commonSdks}
+
+- 新增同类能力前应优先复用上列已有 SDK/库；确需新增或替换时，应说明用途、范围和必要性。
+- 目录结构或依赖发生明显变化时，应同步更新本节，避免规则与项目实际情况脱节。
 
 ## Agent 执行流程
 
@@ -309,11 +475,16 @@ function main() {
   }
 
   const packageManager = options.packageManager ?? inferPackageManager(projectRoot);
-  const buildTool = inferBuildTool(projectRoot);
+  const packageJson = readPackageJson(projectRoot);
+  const buildTool = inferBuildTool(packageJson);
+  const projectTree = renderProjectTree(projectRoot);
+  const commonSdks = renderCommonSdkList(packageJson);
   const content = renderRules({
     stack: options.stack,
     packageManager,
     buildTool,
+    projectTree,
+    commonSdks,
   });
 
   if (options.dryRun) {

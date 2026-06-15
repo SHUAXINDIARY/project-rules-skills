@@ -13,6 +13,7 @@ Create a reusable `.cursor/rules/project-base-rules.mdc` for a target project. P
    - Check worktree status.
    - Read existing `.cursor/rules/*.mdc`, `AGENTS.md`, `README.md`, `package.json`, `tsconfig.json`, and framework config files when present.
    - Identify whether the project is React or Vue from the user's request first, then from dependencies and source files.
+   - Treat the target repository's current directory structure and `package.json` dependencies as project facts that should be reflected in the generated rules.
 2. Choose one entry:
    - React: use `--stack react`.
    - Vue: use `--stack vue`.
@@ -25,7 +26,8 @@ node {{skill_dir}}/scripts/init_project_rules.mjs --project-root /absolute/proje
 
 4. If the target rules file already exists, read it and decide whether to merge manually. The script will not overwrite without `--force`.
 5. Keep target-specific additions small and factual. Add project-specific paths only when the target repository already proves them, and avoid copying unrelated source-project constraints.
-6. Validate with the target project's cheapest relevant command. For rules-only changes, checking the generated file and git diff is usually enough.
+6. Confirm the generated rules include a bounded snapshot of the target project's directory structure and a `package.json`-derived list of common SDKs/libraries. If the project structure or dependencies are unusual, adjust that section manually instead of inventing unstated conventions.
+7. Validate with the target project's cheapest relevant command. For rules-only changes, checking the generated file and git diff is usually enough.
 
 ## Script Options
 
@@ -51,6 +53,8 @@ The generated `.mdc` should include:
 - Agent execution flow and workspace protection.
 - Dependency and command-management rules.
 - Security and privacy rules.
+- Current project directory structure snapshot.
+- Common SDK/library list inferred from `package.json`.
 - TypeScript, async, function/state, and comments guidance.
 - React or Vue implementation conventions.
 - Data/runtime tolerance guidance.
