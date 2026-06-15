@@ -1,11 +1,11 @@
 ---
 name: init-project-rules
-description: Initialize generic Cursor project rules from a reusable base-rules template. Use when Codex needs to create or refresh `.cursor/rules/project-base-rules.mdc` for JavaScript/TypeScript frontend projects, especially when the user asks to initialize rules, create Cursor rules, generalize project rules, or choose React/Vue-specific implementation conventions.
+description: Initialize generic Cursor and Codex project rules from a reusable base-rules template. Use when Codex needs to create or refresh `.cursor/rules/project-base-rules.mdc` and `AGENTS.md` for JavaScript/TypeScript frontend projects, especially when the user asks to initialize rules, create agent rules, generalize project rules, or choose React/Vue-specific implementation conventions.
 ---
 
 # Init Project Rules
 
-Create a reusable `.cursor/rules/project-base-rules.mdc` for a target project. Preserve the policy intent from the source base rules, but remove or generalize project-only details such as exact directory names, data files, route names, product copy, and local skill names.
+Create reusable `.cursor/rules/project-base-rules.mdc` and `AGENTS.md` files for a target project. Preserve the policy intent from the source base rules, but remove or generalize project-only details such as exact directory names, data files, route names, product copy, and local skill names.
 
 ## Workflow
 
@@ -24,17 +24,19 @@ node {{skill_dir}}/scripts/init_project_rules.mjs --project-root /absolute/proje
 node {{skill_dir}}/scripts/init_project_rules.mjs --project-root /absolute/project/path --stack vue
 ```
 
-4. If the target rules file already exists, read it and decide whether to merge manually. The script will not overwrite without `--force`.
-5. Keep target-specific additions small and factual. Add project-specific paths only when the target repository already proves them, and avoid copying unrelated source-project constraints.
-6. Confirm the generated rules include a bounded snapshot of the target project's directory structure and a `package.json`-derived list of common SDKs/libraries. If the project structure or dependencies are unusual, adjust that section manually instead of inventing unstated conventions.
-7. Validate with the target project's cheapest relevant command. For rules-only changes, checking the generated file and git diff is usually enough.
+4. By default, the script writes both Cursor and Codex files. Use `--target cursor` or `--target codex` only when the user asks for a single agent target.
+5. If any target rules file already exists, read it and decide whether to merge manually. The script will not overwrite without `--force`.
+6. Keep target-specific additions small and factual. Add project-specific paths only when the target repository already proves them, and avoid copying unrelated source-project constraints.
+7. Confirm the generated rules include a bounded snapshot of the target project's directory structure and a `package.json`-derived list of common SDKs/libraries. If the project structure or dependencies are unusual, adjust that section manually instead of inventing unstated conventions.
+8. Validate with the target project's cheapest relevant command. For rules-only changes, checking the generated file and git diff is usually enough.
 
 ## Script Options
 
 - `--project-root <path>`: target project root. Defaults to the current working directory.
 - `--stack react|vue`: required framework entry.
 - `--package-manager pnpm|npm|yarn|bun`: optional override. If omitted, the script infers from lockfiles.
-- `--force`: overwrite an existing `.cursor/rules/project-base-rules.mdc`.
+- `--target cursor|codex|all`: optional output target. Defaults to `all`.
+- `--force`: overwrite existing generated rule files.
 - `--dry-run`: print the generated rules instead of writing.
 
 ## Generalization Rules
@@ -47,9 +49,10 @@ node {{skill_dir}}/scripts/init_project_rules.mjs --project-root /absolute/proje
 
 ## Expected Output
 
-The generated `.mdc` should include:
+The generated rule files should include:
 
-- YAML frontmatter with `alwaysApply: true`.
+- YAML frontmatter with `alwaysApply: true` for Cursor output.
+- Standard Markdown without frontmatter for Codex `AGENTS.md`.
 - Agent execution flow and workspace protection.
 - Dependency and command-management rules.
 - Security and privacy rules.

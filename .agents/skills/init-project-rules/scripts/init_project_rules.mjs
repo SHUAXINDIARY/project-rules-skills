@@ -4,6 +4,7 @@ import path from "node:path";
 
 const STACKS = new Set(["react", "vue"]);
 const PACKAGE_MANAGERS = new Set(["pnpm", "npm", "yarn", "bun"]);
+const OUTPUT_TARGETS = new Set(["cursor", "codex", "all"]);
 const TREE_MAX_DEPTH = 2;
 const TREE_MAX_ENTRIES_PER_DIR = 40;
 const TREE_IGNORED_NAMES = new Set([
@@ -42,14 +43,15 @@ const COMMON_SDK_GROUPS = [
 ];
 
 const HELP_TEXT = `Usage:
-  node init_project_rules.mjs --project-root <path> --stack react|vue [--package-manager pnpm|npm|yarn|bun] [--force] [--dry-run]
+  node init_project_rules.mjs --project-root <path> --stack react|vue [--package-manager pnpm|npm|yarn|bun] [--target cursor|codex|all] [--force] [--dry-run]
 
 Options:
   --project-root       Target project root. Defaults to current working directory.
   --stack              Required. Framework entry: react or vue.
   --package-manager    Optional override. Inferred from lockfiles when omitted.
-  --force              Overwrite an existing .cursor/rules/project-base-rules.mdc.
-  --dry-run            Print generated content instead of writing.
+  --target             Output target. Defaults to all.
+  --force              Overwrite existing generated rule files.
+  --dry-run            Print generated content instead of writing files.
   --help               Show this help.
 `;
 
@@ -58,6 +60,7 @@ function parseArgs(argv) {
     projectRoot: process.cwd(),
     stack: undefined,
     packageManager: undefined,
+    target: "all",
     force: false,
     dryRun: false,
   };
@@ -97,6 +100,13 @@ function parseArgs(argv) {
     if (arg === "--package-manager") {
       assertValue(arg, next);
       options.packageManager = next.toLowerCase();
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--target") {
+      assertValue(arg, next);
+      options.target = next.toLowerCase();
       index += 1;
       continue;
     }
@@ -284,16 +294,20 @@ function formatPackageVersion([packageName, packageVersion]) {
   return `\`${packageName}\`${packageVersion ? ` (${packageVersion})` : ""}`;
 }
 
-function renderRules({ stack, packageManager, buildTool, projectTree, commonSdks }) {
+function renderRules({ stack, packageManager, buildTool, projectTree, commonSdks, format }) {
   const stackTitle = stack === "react" ? "React" : "Vue";
   const stackSection = stack === "react" ? renderReactRules() : renderVueRules();
-
-  return `---
+  const frontmatter =
+    format === "cursor"
+      ? `---
 description: 项目通用开发规范，覆盖工作区保护、TypeScript、${stackTitle}、异步、前端体验与质量验证
 alwaysApply: true
 ---
 
-# 项目基础规则
+`
+      : "";
+
+  return `${frontmatter}# 项目基础规则
 
 ## 使用范围
 
@@ -425,6 +439,42 @@ ${stackSection}
 `;
 }
 
+function buildOutputs({ projectRoot, target, cursorContent, codexContent }) {
+  const outputs = [];
+
+  if (target === "cursor" || target === "all") {
+    outputs.push({
+      label: "Cursor",
+      path: path.join(projectRoot, ".cursor", "rules", "project-base-rules.mdc"),
+      content: cursorContent,
+    });
+  }
+
+  if (target === "codex" || target === "all") {
+    outputs.push({
+      label: "Codex",
+      path: path.join(projectRoot, "AGENTS.md"),
+      content: codexContent,
+    });
+  }
+
+  return outputs;
+}
+
+function renderDryRunOutput(outputs, projectRoot) {
+  if (outputs.length === 1) {
+    return outputs[0].content;
+  }
+
+  return outputs
+    .map((output) => {
+      const relativeOutputPath = path.relative(projectRoot, output.path);
+
+      return `--- ${output.label}: ${relativeOutputPath} ---\n${output.content}`;
+    })
+    .join("\n");
+}
+
 function renderReactRules() {
   return `## React 实现约定
 
@@ -468,6 +518,10 @@ function main() {
     throw new Error("--package-manager must be one of: pnpm, npm, yarn, bun.");
   }
 
+  if (!OUTPUT_TARGETS.has(options.target)) {
+    throw new Error("--target must be one of: cursor, codex, all.");
+  }
+
   const projectRoot = path.resolve(options.projectRoot);
 
   if (!existsSync(projectRoot)) {
@@ -479,32 +533,49 @@ function main() {
   const buildTool = inferBuildTool(packageJson);
   const projectTree = renderProjectTree(projectRoot);
   const commonSdks = renderCommonSdkList(packageJson);
-  const content = renderRules({
+  const cursorContent = renderRules({
     stack: options.stack,
     packageManager,
     buildTool,
     projectTree,
     commonSdks,
+    format: "cursor",
+  });
+  const codexContent = renderRules({
+    stack: options.stack,
+    packageManager,
+    buildTool,
+    projectTree,
+    commonSdks,
+    format: "codex",
+  });
+  const outputs = buildOutputs({
+    projectRoot,
+    target: options.target,
+    cursorContent,
+    codexContent,
   });
 
   if (options.dryRun) {
-    process.stdout.write(content);
+    process.stdout.write(renderDryRunOutput(outputs, projectRoot));
     return;
   }
 
-  const rulesDir = path.join(projectRoot, ".cursor", "rules");
-  const outputPath = path.join(rulesDir, "project-base-rules.mdc");
+  const existingOutputs = outputs.filter((output) => existsSync(output.path));
 
-  if (existsSync(outputPath) && !options.force) {
+  if (existingOutputs.length > 0 && !options.force) {
+    const existingFileList = existingOutputs.map((output) => `- ${output.path}`).join("\n");
     throw new Error(
-      `Refusing to overwrite existing rules file: ${outputPath}\n` +
+      `Refusing to overwrite existing rules file(s):\n${existingFileList}\n` +
         "Read and merge it manually, or rerun with --force if replacement is intentional.",
     );
   }
 
-  mkdirSync(rulesDir, { recursive: true });
-  writeFileSync(outputPath, content, "utf8");
-  process.stdout.write(`Wrote ${outputPath}\n`);
+  outputs.forEach((output) => {
+    mkdirSync(path.dirname(output.path), { recursive: true });
+    writeFileSync(output.path, output.content, "utf8");
+    process.stdout.write(`Wrote ${output.path}\n`);
+  });
 }
 
 try {

@@ -4,8 +4,8 @@ This repository contains reusable Cursor/Codex skills for initializing project r
 
 ## Commands
 
-- `pnpm run dry-run:react` - Print the React rules template.
-- `pnpm run dry-run:vue` - Print the Vue rules template.
+- `pnpm run dry-run:react` - Print the React Cursor and Codex rules templates.
+- `pnpm run dry-run:vue` - Print the Vue Cursor and Codex rules templates.
 - `pnpm run validate` - Run both dry-run generators.
 
 ## Notes

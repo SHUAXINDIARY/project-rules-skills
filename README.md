@@ -4,16 +4,17 @@
 
 [![skills.sh](https://skills.sh/b/SHUAXINDIARY/project-rules-skills)](https://www.skills.sh/s/SHUAXINDIARY/project-rules-skills)
 
-用于为 JavaScript/TypeScript 前端项目初始化通用 Cursor 项目规则的可复用 Cursor/Codex 技能集。
+用于为 JavaScript/TypeScript 前端项目初始化通用 Cursor 与 Codex 项目规则的可复用技能集。
 
 ## 仓库说明
 
-本仓库用于存放 agent 技能与配套脚本，帮助目标项目生成一致的 `.cursor/rules/project-base-rules.mdc`。生成的规则聚焦实用工程约束，包括工作区保护、命令使用、依赖管理、TypeScript 规范、框架相关前端约定、安全、可访问性、质量验证与交付说明。
+本仓库用于存放 agent 技能与配套脚本，帮助目标项目生成一致的 Cursor 与 Codex 规则文件。生成的规则聚焦实用工程约束，包括工作区保护、命令使用、依赖管理、TypeScript 规范、框架相关前端约定、安全、可访问性、质量验证与交付说明。
 
 ## 能力说明
 
-- 提供 `init-project-rules` 技能，用于为 React 或 Vue 项目初始化 Cursor 规则。
-- 生成带有 `alwaysApply: true` 的可复用 `.cursor/rules/project-base-rules.mdc`。
+- 提供 `init-project-rules` 技能，用于为 React 或 Vue 项目初始化 Cursor 与 Codex 规则。
+- 默认生成可复用 `.cursor/rules/project-base-rules.mdc` 和 `AGENTS.md`。
+- Cursor 规则包含 `alwaysApply: true` frontmatter；Codex 规则使用标准 Markdown。
 - 在可能时根据锁文件推断目标项目的包管理器。
 - 根据 `package.json` 推断常见构建工具，包括 Rsbuild、Vite、Next.js、Nuxt 和 Webpack。
 - 默认写入目标项目的有限目录结构快照，帮助 agent 理解当前工程边界。
@@ -25,7 +26,7 @@
 
 | 技能 | 用途 |
 | --- | --- |
-| `init-project-rules` | 为 React 或 Vue 前端项目生成 `.cursor/rules/project-base-rules.mdc`。 |
+| `init-project-rules` | 为 React 或 Vue 前端项目生成 Cursor 与 Codex 规则文件。 |
 
 ## 环境要求
 
@@ -50,8 +51,8 @@ npx skills add SHUAXINDIARY/project-rules-skills
 在会加载 `.agents/skills` 的 Codex/Cursor 兼容 agent 环境中，可以直接让 agent 使用该技能：
 
 ```text
-Use $init-project-rules to initialize Cursor project rules for a React app.
-Use $init-project-rules to initialize Cursor project rules for a Vue app.
+Use $init-project-rules to initialize Cursor and Codex project rules for a React app.
+Use $init-project-rules to initialize Cursor and Codex project rules for a Vue app.
 ```
 
 该技能会要求 agent 先检查目标项目，再选择正确技术栈并生成规则。生成内容会包含当前工程目录结构和从 `package.json` 推断出的通用 SDK/库，同时避免覆盖用户已有的无关改动。
@@ -91,7 +92,8 @@ node .agents/skills/init-project-rules/scripts/init_project_rules.mjs --project-
 --project-root <path>                 目标项目根目录，默认使用当前工作目录。
 --stack react|vue                     必填，目标框架入口。
 --package-manager pnpm|npm|yarn|bun   可选，手动指定包管理器。
---force                               明确覆盖已有 project-base-rules.mdc。
+--target cursor|codex|all             可选，输出目标，默认 all。
+--force                               明确覆盖已有生成规则文件。
 --dry-run                             只打印生成内容，不写入文件。
 --help                                显示命令帮助。
 ```
@@ -102,13 +104,14 @@ node .agents/skills/init-project-rules/scripts/init_project_rules.mjs --project-
 
 ```text
 <target-project>/.cursor/rules/project-base-rules.mdc
+<target-project>/AGENTS.md
 ```
 
-如果该文件已经存在，生成器会停止并提示先人工审阅或合并。只有在明确需要替换现有文件时才使用 `--force`。
+如果任一目标文件已经存在，生成器会停止并提示先人工审阅或合并。只有在明确需要替换现有文件时才使用 `--force`。
 
 生成的规则会包含：
 
-- `alwaysApply: true` 的项目基础规则。
+- Cursor 使用 `alwaysApply: true` 的项目基础规则，Codex 使用同等内容的 `AGENTS.md`。
 - 目标项目的有限目录结构快照，默认跳过 `node_modules`、`.git`、构建产物、缓存和 `.env*` 等不适合写入规则的内容。
 - 从 `package.json` 推断出的常见通用 SDK/库清单。
 - 包管理器、构建工具、TypeScript、React/Vue、异步、数据容错、前端验收、安全、Git 与交付相关约束。
