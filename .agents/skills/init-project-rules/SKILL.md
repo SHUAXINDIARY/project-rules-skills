@@ -5,7 +5,7 @@ description: Initialize generic Cursor and Codex project rules from a reusable b
 
 # Init Project Rules
 
-Create reusable `.cursor/rules/project-base-rules.mdc` and `AGENTS.md` files for a target project. Preserve the policy intent from the source base rules, but remove or generalize project-only details such as exact directory names, data files, route names, product copy, and local skill names.
+Create reusable rules for a target project. The full ruleset lives only in `.cursor/rules/project-base-rules.mdc` (the single source of truth); `AGENTS.md` is generated as a thin entry that points Codex to that Cursor rules file, so the rule body is never duplicated across two files. Preserve the policy intent from the source base rules, but remove or generalize project-only details such as exact directory names, data files, route names, product copy, and local skill names.
 
 ## Workflow
 
@@ -24,7 +24,7 @@ node {{skill_dir}}/scripts/init_project_rules.mjs --project-root /absolute/proje
 node {{skill_dir}}/scripts/init_project_rules.mjs --project-root /absolute/project/path --stack vue
 ```
 
-4. By default, the script writes both Cursor and Codex files. Use `--target cursor` or `--target codex` only when the user asks for a single agent target.
+4. By default, the script writes both Cursor and Codex files. Use `--target cursor` or `--target codex` only when the user asks for a single agent target. Because `AGENTS.md` only references `.cursor/rules/project-base-rules.mdc`, prefer `--target all` (or generate the Cursor file separately) so the referenced rules file actually exists.
 5. If any target rules file already exists, read it and decide whether to merge manually. The script will not overwrite without `--force`.
 6. Keep target-specific additions small and factual. Add project-specific paths only when the target repository already proves them, and avoid copying unrelated source-project constraints.
 7. Confirm the generated rules include a bounded snapshot of the target project's directory structure and a `package.json`-derived list of common SDKs/libraries. If the project structure or dependencies are unusual, adjust that section manually instead of inventing unstated conventions.
@@ -49,10 +49,9 @@ node {{skill_dir}}/scripts/init_project_rules.mjs --project-root /absolute/proje
 
 ## Expected Output
 
-The generated rule files should include:
+The Cursor rules file (`.cursor/rules/project-base-rules.mdc`) is the single source of truth and should include:
 
-- YAML frontmatter with `alwaysApply: true` for Cursor output.
-- Standard Markdown without frontmatter for Codex `AGENTS.md`.
+- YAML frontmatter with `alwaysApply: true`.
 - Agent execution flow and workspace protection.
 - Dependency and command-management rules.
 - Security and privacy rules.
@@ -64,3 +63,5 @@ The generated rule files should include:
 - Frontend acceptance checklist.
 - Git/worktree protection.
 - Validation and delivery notes.
+
+The Codex file (`AGENTS.md`) is intentionally a thin pointer: standard Markdown without frontmatter that instructs the agent to read and follow `.cursor/rules/project-base-rules.mdc`, plus a note of which framework conventions that file covers. It must not duplicate the rule body.

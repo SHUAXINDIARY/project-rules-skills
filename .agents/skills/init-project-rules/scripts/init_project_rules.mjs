@@ -294,6 +294,24 @@ function formatPackageVersion([packageName, packageVersion]) {
   return `\`${packageName}\`${packageVersion ? ` (${packageVersion})` : ""}`;
 }
 
+const CURSOR_RULES_RELATIVE_PATH = ".cursor/rules/project-base-rules.mdc";
+
+function renderCodexPointer({ stack }) {
+  const stackTitle = stack === "react" ? "React" : "Vue";
+
+  return `# 项目基础规则
+
+> 本项目的完整开发规范统一维护在 Cursor rules，\`AGENTS.md\` 仅作为入口引用，避免重复维护两份规则。
+
+## 规则来源
+
+- 开始任何开发、维护、审查或交付任务前，必须完整阅读并遵循 \`${CURSOR_RULES_RELATIVE_PATH}\`，它是唯一权威规则来源。
+- 该文件覆盖：使用范围、项目结构与已用 SDK、Agent 执行流程、技术栈与命令、工作区与文件边界、安全与隐私、TypeScript 规范、异步与数据流、函数/常量/注释、${stackTitle} 实现约定、数据文件与运行时容错、前端验收清单、Git 与工作区保护、质量验证与交付。
+- 规则内容需要更新时，只修改 \`${CURSOR_RULES_RELATIVE_PATH}\`，不要在本文件重复维护规则正文。
+- 项目结构快照与 \`package.json\` 识别到的通用 SDK/库同样维护在该规则文件中；若与仓库实际情况不一致，以仓库实际为准并同步更新该文件。
+`;
+}
+
 function renderRules({ stack, packageManager, buildTool, projectTree, commonSdks, format }) {
   const stackTitle = stack === "react" ? "React" : "Vue";
   const stackSection = stack === "react" ? renderReactRules() : renderVueRules();
@@ -522,6 +540,12 @@ function main() {
     throw new Error("--target must be one of: cursor, codex, all.");
   }
 
+  if (options.target === "codex") {
+    process.stderr.write(
+      `Note: AGENTS.md only references ${CURSOR_RULES_RELATIVE_PATH}; make sure that Cursor rules file exists or generate it with --target all.\n`,
+    );
+  }
+
   const projectRoot = path.resolve(options.projectRoot);
 
   if (!existsSync(projectRoot)) {
@@ -541,14 +565,7 @@ function main() {
     commonSdks,
     format: "cursor",
   });
-  const codexContent = renderRules({
-    stack: options.stack,
-    packageManager,
-    buildTool,
-    projectTree,
-    commonSdks,
-    format: "codex",
-  });
+  const codexContent = renderCodexPointer({ stack: options.stack });
   const outputs = buildOutputs({
     projectRoot,
     target: options.target,
